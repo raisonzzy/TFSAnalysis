@@ -1,0 +1,490 @@
+﻿@{
+    ViewData["Title"] = "单元测试情况";
+}
+
+<table width="100%" border="1" >
+    <tr>
+        <td width="650px">
+            <div id="main" style="height:250px; font-weight:bolder; width:650px;">
+            </div>
+        </td>
+        <td width="650px">
+            <div id="mainLastest" style="height:250px;font-weight:bolder;width:650px;">
+            </div>
+        </td>
+        <td style="vertical-align:top;">
+            <span style="margin-top:2px;margin-left:5px; font-size:18px;"><b>最近签入明细</b></span>
+            <table id="tfschangedetail" width="100%" style="margin-top:5px;">
+                <thead>
+                    <tr>
+                        <th width="60px" style="text-align:center;">用户</th>
+                        <th width="150px" style="text-align:center;">签入时间</th>
+                        <th style="text-align:center;">注释</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="3">
+            <div id="buildmain" style="min-height:250px;height:auto;font-weight:bolder;width:100%;">
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <td style="vertical-align:top;">
+            <span style="margin-top:2px;margin-left:5px; font-size:18px;"><b>最近部署(生成)明细</b></span>
+            <table id="tfsbuildlastest" border="0" width="100%" style="margin-top:3px;">
+                <thead>
+                    <tr>
+                        <th style="text-align:center;">日期</th>
+                        <th style="text-align:center;">生成名称</th>
+                        @*<th>平台</th>*@
+                        <th style="text-align:center;">配置</th>
+                        <th style="text-align:center;">状态</th>
+                        <th style="text-align:center;">生成质量</th>
+                        <th style="text-align:center;">UT Passed</th>
+                        <th style="text-align:center;">UT Failed</th>
+                        <th style="text-align:center;">覆盖率</th>
+                        <th style="text-align:center;">代码改动行数</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </td>
+        <td colspan="2" style="vertical-align:top;">
+            <span style="margin-top:2px;margin-left:5px; font-size:18px;"><b>每日生成结果(近一个月)</b></span>
+            <span class="label" style="background-color:cornsilk;font-size:12px;color:darkgray;">无生成</span>
+            <span class="label" style="background-color:#ff7586;font-size:12px;color:white;">已部分生成</span>
+            <span class="label" style="background-color:#c90012;font-size:12px;color:white;">生成失败</span>
+            <span class="label" style="background-color:#ffec35;font-size:12px;color:white;">生成成功无测试</span>
+            <span class="label" style="background-color:#f9934a;font-size:12px;color:white;">未通过的测试</span>
+            <span class="label" style="background-color:#d3fa83;font-size:12px;color:white;">已通过测试低覆盖率</span>
+            <span class="label" style="background-color:#7bb876;font-size:12px;color:white;">已通过</span>
+            <table width="98%" border="1" id="everydaybuild" style="margin-top:5px;margin-left:5px;">
+                <thead>
+                </thead>
+                <tbody >
+                </tbody>
+            </table>
+        </td>
+    </tr>
+</table>
+@section scripts
+{
+    <script type="text/javascript">
+        var myChart = echarts.init(document.getElementById('main'));
+        var myChartLastest = echarts.init(document.getElementById('mainLastest'));
+
+        var ChartData = {
+            categorydata: [],
+            valuedata: [],
+            categorydatalastest: [],
+            valuedatalastest: [],
+            buildcategorydata: [],
+            buildvaluedata:[],
+            SetData: function (res) {
+                ChartData.categorydata.length = 0;
+                ChartData.valuedata.length = 0;
+                for (var i = res.length - 1; i > -1; i--) {
+                    ChartData.categorydata.push(res[i].UserName);
+                    ChartData.valuedata.push(res[i].ChangeCount);
+                }
+            },
+            SetDataLastest: function (res) {
+                ChartData.categorydatalastest.length = 0;
+                ChartData.valuedatalastest.length = 0;
+                for (var i = res.length - 1; i > -1; i--) {
+                    ChartData.categorydatalastest.push(res[i].UserName);
+                    ChartData.valuedatalastest.push(res[i].ChangeCount);
+                }
+            },
+            SetDataDetail: function (res) {
+                var tbody = $("#tfschangedetail>tbody");
+                tbody.empty();
+                var row = null;
+                for (var i = res.length - 1; i > -1 && (res.length - i) < 14; i--) {
+                    row = $("<tr style=\"background-color:#CADEFF;\"></tr>");
+                    $("<td style=\"text-align:center;\">" + res[i].UserName + "</td>" +
+                    "<td style=\"text-align:center;\">" + res[i].LastUpdatedDateTimeFormat + "</td>" +
+                    "<td>" + res[i].ChangesetTitle + "</td>").appendTo(row);
+                    row.appendTo(tbody);
+                }
+            },
+            SetBuildData: function (res) {
+                ChartData.buildcategorydata.length = 0;
+                ChartData.buildvaluedata.length = 0;
+                var xstart = 80;
+                var xtemp = 130;
+                var ystart = 100;
+                var ytemp = 150;
+                var vx = 0;
+                var vint = 0;
+                for (var i = res.length - 1; i > -1; i--) {
+                    ChartData.buildcategorydata.push(res[i].BuildDefinitionName);
+                    var row = {};
+                    if (vx > (xstart + xtemp * 16)) {
+                        vint = 0;
+                        ystart = ystart + ytemp;
+                    }
+                    vx = xstart + xtemp * vint;
+                    row.center = [vx + 'px', ystart + 'px'];
+                    row.type = 'pie';
+                    row.radius = radius;
+                    row.x = '0%';
+                    row.itemStyle = labelFromatter;
+                    if (res[i].FailedCount == 0 && res[i].PassedCount == 0) {
+                        row.data = [
+                                        { name: 'other', value: 100000, itemStyle: labelBottom },
+                                        { name: res[i].BuildDefinitionName, value: 1, itemStyle: labelTop }
+                        ];
+                    }
+                    else {
+                        row.data = [
+                                        { name: 'other', value: res[i].FailedCount, itemStyle: labelBottom },
+                                        { name: res[i].BuildDefinitionName, value: res[i].PassedCount, itemStyle: labelTop }
+                        ];
+                    }
+
+                    ChartData.buildvaluedata.push(row);
+                    vint++;
+                }
+            },
+            SetBuildDataDetail: function (res) {
+                var tbody = $("#tfsbuildlastest>tbody");
+                tbody.empty();
+                var row = null;
+                var vbackcolor = "";
+                for (var i = res.length - 1; i > -1; i--) {
+                    if (res[i].BuildStatusName == "未通过") {
+                        vbackcolor = "background-color:#ff7586;";
+                    }
+                    else if (res[i].BuildStatusName == "已停止") {
+                        vbackcolor = "background-color:#FFAEB9;";
+                    }
+                    else {
+                        vbackcolor = "background-color:#A2CD5A;";
+                    }
+                    row = $("<tr style=\"" + vbackcolor + "\"></tr>");
+                    $("<td style=\"text-align:center;\">" + res[i].BuildStartTimeFormat + "</td>" +
+                    "<td>" + res[i].BuildName + "</td>" +
+                    //"<td>" + res[i].BuildPlatformName + "</td>" +
+                    "<td style=\"text-align:center;\">" + res[i].BuildFlavorName + "</td>" +
+                    "<td style=\"text-align:center;\">" + res[i].BuildStatusName + "</td>" +
+                    "<td style=\"text-align:center;\">" + (res[i].BuildQualityName == null ? "" : res[i].BuildQualityName) + "</td>" +
+                    "<td style=\"text-align:center;\">" + res[i].PassedCount + "</td>" +
+                    "<td style=\"text-align:center;\">" + res[i].FailedCount + "</td>" +
+                    "<td style=\"text-align:center;\">0%</td>" +
+                    "<td style=\"text-align:center;\">" + res[i].TotalChurn + "</td>").appendTo(row);
+                    row.appendTo(tbody);
+                }
+            },
+            SetBuildEvery: function (res){
+                var tbody = $("#everydaybuild>tbody");
+                tbody.empty();
+                var thead = $("#everydaybuild>thead");
+                thead.empty();
+                $("<tr><th style=\"text-align:center; width:230px;\">生成定义</th>" + res.th + "</tr>").appendTo(thead);
+                var row = null;
+                var vbackcolor = "";
+                for (var i = res.builddefinition.length - 1; i > -1; i--) {
+                    
+                    row = $("<tr style=\"" + vbackcolor + "\"></tr>");
+                    $("<td style=\"text-align:center;\">" + res.builddefinition[i].DefinitionName + "</td>" +
+                    res.builddefinition[i].TableContext).appendTo(row);
+                    row.appendTo(tbody);
+                }
+            }
+        };
+
+        option = {
+            title: {
+                x: 'center',
+                text: 'TFS签入量',
+                subtext: '目前TFS全部签入量汇总统计'
+            },
+            tooltip: {
+                trigger: 'item'
+            },
+            toolbox: {
+                show: false,
+                feature: {
+                    dataView: { show: true, readOnly: false },
+                    restore: { show: true },
+                    saveAsImage: { show: true }
+                }
+            },
+            calculable: true,
+            grid: {
+                borderWidth: 1,
+                x:50,
+                y: 50,
+                y2:10
+            },
+            xAxis: [
+                {
+                    type: 'category',
+                    show: false,
+                    data: ChartData.categorydata
+                }
+            ],
+            yAxis: [
+                {
+                    type: 'value',
+                    show: true
+                }
+            ],
+            series: [
+                {
+                    name: 'ECharts例子个数统计',
+                    type: 'bar',
+                    barWidth:10,
+                    itemStyle: {
+                        normal: {
+                            color: function (params) {
+                                // build a color map as your need.
+                                var colorList = [
+                                  '#C1232B', '#B5C334', '#FCCE10', '#E87C25', '#27727B',
+                                   '#FE8463', '#9BCA63', '#FAD860', '#F3A43B', '#60C0DD',
+                                   '#D7504B', '#C6E579', '#F4E001', '#F0805A', '#26C0C0'
+                                ];
+                                return colorList[params.dataIndex]
+                            },
+                            label: {
+                                show: true,
+                                position: 'top',
+                                formatter: '{b}\n{c}'
+                            }
+                        }
+                    },
+                    data: ChartData.valuedata,
+                    markPoint: {
+                        data: []
+                    }
+                }
+            ]
+        };
+        optionlastest = {
+            title: {
+                x: 'center',
+                text: 'TFS签入量(当月)',
+                subtext: '目前TFS当月签入量汇总统计'
+            },
+            tooltip: {
+                trigger: 'item'
+            },
+            toolbox: {
+                show: false,
+                feature: {
+                    dataView: { show: true, readOnly: false },
+                    restore: { show: true },
+                    saveAsImage: { show: true }
+                }
+            },
+            calculable: true,
+            grid: {
+                borderWidth: 1,
+                x:50,
+                y: 50,
+                y2:10
+            },
+            xAxis: [
+                {
+                    type: 'category',
+                    show: false,
+                    data: ChartData.categorydatalastest
+                }
+            ],
+            yAxis: [
+                {
+                    type: 'value',
+                    show: true
+                }
+            ],
+            series: [
+                {
+                    name: 'ECharts例子个数统计',
+                    type: 'bar',
+                    barWidth: 10,
+                    itemStyle: {
+                        normal: {
+                            color: function (params) {
+                                // build a color map as your need.
+                                var colorList = [
+                                  '#C1232B', '#B5C334', '#FCCE10', '#E87C25', '#27727B',
+                                   '#FE8463', '#9BCA63', '#FAD860', '#F3A43B', '#60C0DD',
+                                   '#D7504B', '#C6E579', '#F4E001', '#F0805A', '#26C0C0'
+                                ];
+                                return colorList[params.dataIndex]
+                            },
+                            label: {
+                                show: true,
+                                position: 'top',
+                                formatter: '{b}\n{c}'
+                            }
+                        }
+                    },
+                    data: ChartData.valuedatalastest,
+                    markPoint: {
+                        data: []
+                    }
+                }
+            ]
+        };
+        GetChangeSet();
+        setInterval('GetChangeSet();', 3600000);//1小时
+        function GetChangeSet() {
+            $.ajax({
+                type: "post",
+                url: "/Home/GetAllChangeset",
+                datatype: "json",
+                //data: ,
+                success: function (data) {
+                    ChartData.SetData(data.result);
+                    ChartData.SetDataLastest(data.resultLastest);
+
+                    myChart.setOption(option);
+                    myChartLastest.setOption(optionlastest);
+
+                    ChartData.SetDataDetail(data.perListLastest);
+                    
+                    $("#spandate").text(data.vdate);
+                },
+                error: function () {
+                    return false;
+                }
+            });
+        }
+
+        var labelTop = {
+            normal: {
+                label: {
+                    show: true,
+                    position: 'center',
+                    formatter: '{b}',
+                    textStyle: {
+                        baseline: 'bottom'
+                    }
+                },
+                labelLine: {
+                    show: false
+                }
+            }
+        };
+        var labelFromatter = {
+            normal: {
+                label: {
+                    formatter: function (params) {
+                        var i = Math.round((params.series.data[1].value / (params.series.data[0].value + params.series.data[1].value)) * 100);
+                        return i + '%'
+                    },
+                    textStyle: {
+                        baseline: 'top'
+                    }
+                }
+            },
+        }
+        var labelBottom = {
+            normal: {
+                color: '#ccc',
+                label: {
+                    show: true,
+                    position: 'center'
+                },
+                labelLine: {
+                    show: false
+                }
+            },
+            emphasis: {
+                color: 'rgba(0,0,0,0)'
+            }
+        };
+        var radius = [30, 40];
+        buildoption = {
+            legend: {
+                show:false,
+                x: 'left',
+                y: 'bottom',
+                data: ChartData.buildcategorydata
+            },
+            title: {
+                text: 'Unit Test',
+                subtext: '测试通过率百分比',
+                x: 'center'
+            },
+            toolbox: {
+                show: false,
+                feature: {
+                    dataView: { show: true, readOnly: false },
+                    magicType: {
+                        show: true,
+                        type: ['pie', 'funnel'],
+                        option: {
+                            funnel: {
+                                width: '20%',
+                                height: '30%',
+                                itemStyle: {
+                                    normal: {
+                                        label: {
+                                            formatter: function (params) {
+                                                return 'other\n' + params.value + '%\n'
+                                            },
+                                            textStyle: {
+                                                baseline: 'middle'
+                                            }
+                                        }
+                                    },
+                                }
+                            }
+                        }
+                    },
+                    restore: { show: true },
+                    saveAsImage: { show: true }
+                }
+            },
+            series: ChartData.buildvaluedata
+        };
+        var mybuildChart = echarts.init(document.getElementById('buildmain'));
+        function GetUnitTest() {
+            $.ajax({
+                type: "post",
+                url: "/Home/GetUnitTestOverview",
+                datatype: "json",
+                //data: ,
+                success: function (data) {
+
+                    ChartData.SetBuildData(data);
+
+                    mybuildChart.setOption(buildoption);
+
+                    ChartData.SetBuildDataDetail(data);
+                },
+                error: function () {
+                    return false;
+                }
+            });
+        }
+        GetUnitTest();
+        setInterval('GetUnitTest();', 28800000);//8小时
+
+        function GetBuildEveryDay() {
+            $.ajax({
+                type: "post",
+                url: "/Home/GetBuildEveryDay",
+                datatype: "json",
+                //data: ,
+                success: function (data) {
+                    //ChartData.SetBuildEvery(data.builddefinition, data.buildDetail);
+                    ChartData.SetBuildEvery(data);
+                },
+                error: function () {
+                    return false;
+                }
+            });
+        }
+        GetBuildEveryDay();
+        setInterval('GetBuildEveryDay();', 28800000);//8小时
+
+    </script>
+}

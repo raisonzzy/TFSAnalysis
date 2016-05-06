@@ -1,0 +1,226 @@
+﻿@{
+    ViewData["Title"] = "签入情况统计";
+}
+<div class="row">
+    <div id="main" style="min-height:410px;font-weight:bolder">
+
+    </div>
+</div>
+<div class="row">
+    <div id="mainLastest" style="min-height:410px;font-weight:bolder">
+
+    </div>
+</div>
+<div class="row">
+    <div id="detailList" style="min-height:410px;font-weight:bolder">
+        <h2>最近签入明细</h2>
+        <table class="table table-striped" id="tfschangedetail">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>用户</th>
+                    <th>签入时间</th>
+                    <th>注释</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+    @section scripts
+{
+        <script type="text/javascript">
+            var myChart = echarts.init(document.getElementById('main'));
+            var myChartLastest = echarts.init(document.getElementById('mainLastest'));
+
+            var ChartData = {
+                categorydata: [],
+                valuedata: [],
+                categorydatalastest: [],
+                valuedatalastest: [],
+                SetData: function (res) {
+                    ChartData.categorydata.length = 0;
+                    ChartData.valuedata.length = 0;
+                    for (var i = res.length - 1; i > -1; i--) {
+                        ChartData.categorydata.push(res[i].UserName);
+                        ChartData.valuedata.push(res[i].ChangeCount);
+                    }
+                },
+                SetDataLastest: function (res) {
+                    ChartData.categorydatalastest.length = 0;
+                    ChartData.valuedatalastest.length = 0;
+                    for (var i = res.length - 1; i > -1; i--) {
+                        ChartData.categorydatalastest.push(res[i].UserName);
+                        ChartData.valuedatalastest.push(res[i].ChangeCount);
+                    }
+                },
+                SetDataDetail: function (res) {
+                    var tbody = $("#tfschangedetail>tbody");
+                    tbody.empty();
+                    var row = null;
+                    for (var i = res.length - 1; i > -1 && (res.length - i) < 10; i--) {
+                        row = $("<tr style=\"background-color:#CADEFF;\"></tr>");
+                        $("<td></td>" +
+                        "<td>" + res[i].UserName + "</td>" +
+                        "<td>" + res[i].LastUpdatedDateTime + "</td>" +
+                        "<td>" + res[i].ChangesetTitle + "</td>").appendTo(row);
+                        row.appendTo(tbody);
+                    }
+                }
+            };
+
+            option = {
+                title: {
+                    x: 'center',
+                    text: 'TFS签入量',
+                    subtext: '目前TFS全部签入量汇总统计'
+                },
+                tooltip: {
+                    trigger: 'item'
+                },
+                toolbox: {
+                    show: false,
+                    feature: {
+                        dataView: { show: true, readOnly: false },
+                        restore: { show: true },
+                        saveAsImage: { show: true }
+                    }
+                },
+                calculable: true,
+                grid: {
+                    borderWidth: 0,
+                    y: 80,
+                    y2: 60
+                },
+                xAxis: [
+                    {
+                        type: 'category',
+                        show: false,
+                        data: ChartData.categorydata
+                    }
+                ],
+                yAxis: [
+                    {
+                        type: 'value',
+                        show: true
+                    }
+                ],
+                series: [
+                    {
+                        name: 'ECharts例子个数统计',
+                        type: 'bar',
+                        itemStyle: {
+                            normal: {
+                                color: function (params) {
+                                    // build a color map as your need.
+                                    var colorList = [
+                                      '#C1232B', '#B5C334', '#FCCE10', '#E87C25', '#27727B',
+                                       '#FE8463', '#9BCA63', '#FAD860', '#F3A43B', '#60C0DD',
+                                       '#D7504B', '#C6E579', '#F4E001', '#F0805A', '#26C0C0'
+                                    ];
+                                    return colorList[params.dataIndex]
+                                },
+                                label: {
+                                    show: true,
+                                    position: 'top',
+                                    formatter: '{b}\n{c}'
+                                }
+                            }
+                        },
+                        data: ChartData.valuedata,
+                        markPoint: {
+                            data: []
+                        }
+                    }
+                ]
+            };
+            optionlastest = {
+                title: {
+                    x: 'center',
+                    text: 'TFS签入量(当月)',
+                    subtext: '目前TFS当月签入量汇总统计'
+                },
+                tooltip: {
+                    trigger: 'item'
+                },
+                toolbox: {
+                    show: false,
+                    feature: {
+                        dataView: { show: true, readOnly: false },
+                        restore: { show: true },
+                        saveAsImage: { show: true }
+                    }
+                },
+                calculable: true,
+                grid: {
+                    borderWidth: 0,
+                    y: 80,
+                    y2: 60
+                },
+                xAxis: [
+                    {
+                        type: 'category',
+                        show: false,
+                        data: ChartData.categorydatalastest
+                    }
+                ],
+                yAxis: [
+                    {
+                        type: 'value',
+                        show: true
+                    }
+                ],
+                series: [
+                    {
+                        name: 'ECharts例子个数统计',
+                        type: 'bar',
+                        itemStyle: {
+                            normal: {
+                                color: function (params) {
+                                    // build a color map as your need.
+                                    var colorList = [
+                                      '#C1232B', '#B5C334', '#FCCE10', '#E87C25', '#27727B',
+                                       '#FE8463', '#9BCA63', '#FAD860', '#F3A43B', '#60C0DD',
+                                       '#D7504B', '#C6E579', '#F4E001', '#F0805A', '#26C0C0'
+                                    ];
+                                    return colorList[params.dataIndex]
+                                },
+                                label: {
+                                    show: true,
+                                    position: 'top',
+                                    formatter: '{b}\n{c}'
+                                }
+                            }
+                        },
+                        data: ChartData.valuedatalastest,
+                        markPoint: {
+                            data: []
+                        }
+                    }
+                ]
+            };
+            GetChangeSet();
+            setInterval('GetChangeSet();', 3600000);
+            function GetChangeSet() {
+                $.ajax({
+                    type: "post",
+                    url: "/Home/GetAllChangeset",
+                    datatype: "json",
+                    //data: ,
+                    success: function (data) {
+
+                        ChartData.SetData(data.result);
+                        ChartData.SetDataLastest(data.resultLastest);
+
+                        myChart.setOption(option);
+                        myChartLastest.setOption(optionlastest);
+
+                        ChartData.SetDataDetail(data.perListLastest);
+                    },
+                    error: function () {
+                        return false;
+                    }
+                });
+            }
+        </script>
+    }

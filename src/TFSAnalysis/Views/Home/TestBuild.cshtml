@@ -1,0 +1,222 @@
+﻿@{
+    ViewData["Title"] = "单元测试情况";
+}
+<div class="row">
+    <div id="main" style="min-height:550px;font-weight:bolder;">
+
+    </div>
+</div>
+<div class="row">
+    <div id="detailList" style="min-height:410px;font-weight:bolder">
+        <h2>最近生成明细</h2>
+        <table class="table table-striped" id="tfsbuildlastest">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>生成名称</th>
+                    <th>平台</th>
+                    <th>配置</th>
+                    <th>状态</th>
+                    <th>生成质量</th>
+                    <th>UT Passed</th>
+                    <th>UT Failed</th>
+                    <th>覆盖率</th>
+                    <th>代码改动行数</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@section scripts
+{
+    <script type="text/javascript">
+        var ChartData = {
+            categorydata: [],
+            valuedata: [],
+            categorydatalastest: [],
+            valuedatalastest: [],
+            SetData: function (res) {
+                ChartData.categorydata.length = 0;
+                ChartData.valuedata.length = 0;
+                var xstart = 80;
+                var xtemp = 130;
+                var ystart = 100;
+                var ytemp = 150;
+                var vx = 0;
+                var vint = 0;
+                for (var i = res.length - 1; i > -1; i--) {
+                    ChartData.categorydata.push(res[i].BuildDefinitionName);
+                    var row = {};
+                    if (vx > (xstart + xtemp * 6))
+                    {
+                        vint = 0;
+                        ystart = ystart + ytemp;
+                    }
+                    vx = xstart + xtemp * vint;
+                    row.center = [vx + 'px', ystart + 'px'];
+                    row.type = 'pie';
+                    row.radius = radius;
+                    row.x = '0%';
+                    row.itemStyle = labelFromatter;
+                    if (res[i].FailedCount == 0 && res[i].PassedCount == 0) {
+                        row.data = [
+                                        { name: 'other', value: 100000, itemStyle: labelBottom },
+                                        { name: res[i].BuildDefinitionName, value: 1, itemStyle: labelTop }
+                        ];
+                    }
+                    else {
+                        row.data = [
+                                        { name: 'other', value: res[i].FailedCount, itemStyle: labelBottom },
+                                        { name: res[i].BuildDefinitionName, value: res[i].PassedCount, itemStyle: labelTop }
+                        ];
+                    }
+                    
+                    ChartData.valuedata.push(row);
+                    vint++;
+                }
+            },
+            SetDataDetail: function (res) {
+                var tbody = $("#tfsbuildlastest>tbody");
+                tbody.empty();
+                var row = null;
+                var vbackcolor = "";
+                for (var i = res.length - 1; i > -1; i--) {
+                    if (res[i].BuildStatusName == "未通过") {
+                        vbackcolor = "background-color:#FF0000;";
+                    }
+                    else if (res[i].BuildStatusName == "已停止") {
+                        vbackcolor = "background-color:#FFAEB9;";
+                    }
+                    else {
+                        vbackcolor = "background-color:#A2CD5A;";
+                    }
+                    row = $("<tr style=\"" + vbackcolor + "\"></tr>");
+                    $("<td>" + res[i].BuildStartTime + "</td>" +
+                    "<td>" + res[i].BuildName + "</td>" +
+                    "<td>" + res[i].BuildPlatformName + "</td>" +
+                    "<td>" + res[i].BuildFlavorName + "</td>" +
+                    "<td>" + res[i].BuildStatusName + "</td>" +
+                    "<td>" + (res[i].BuildQualityName == null ? "" : res[i].BuildQualityName) + "</td>" +
+                    "<td>" + res[i].PassedCount + "</td>" +
+                    "<td>" + res[i].FailedCount + "</td>" +
+                    "<td>0%</td>" +
+                    "<td>" + res[i].TotalChurn + "</td>").appendTo(row);
+                    row.appendTo(tbody);
+                }
+            }
+        };
+
+        var labelTop = {
+            normal : {
+                label : {
+                    show : true,
+                    position : 'center',
+                    formatter : '{b}',
+                    textStyle: {
+                        baseline : 'bottom'
+                    }
+                },
+                labelLine : {
+                    show : false
+                }
+            }
+        };
+        var labelFromatter = {
+            normal : {
+                label : {
+                    formatter: function (params) {
+                        var i = Math.round((params.series.data[1].value / (params.series.data[0].value + params.series.data[1].value)) * 100);
+                        return i + '%'
+                    },
+                    textStyle: {
+                        baseline : 'top'
+                    }
+                }
+            },
+        }
+        var labelBottom = {
+            normal : {
+                color: '#ccc',
+                label : {
+                    show : true,
+                    position : 'center'
+                },
+                labelLine : {
+                    show : false
+                }
+            },
+            emphasis: {
+                color: 'rgba(0,0,0,0)'
+            }
+        };
+        var radius = [40, 55];
+        option = {
+            legend: {
+                x : 'left',
+                y : 'bottom',
+                data: ChartData.categorydata
+            },
+            title : {
+                text: 'Unit Test',
+                subtext: '代码覆盖率百分比',
+                x: 'center'
+            },
+            toolbox: {
+                show : false,
+                feature : {
+                    dataView : {show: true, readOnly: false},
+                    magicType : {
+                        show: true, 
+                        type: ['pie', 'funnel'],
+                        option: {
+                            funnel: {
+                                width: '20%',
+                                height: '30%',
+                                itemStyle : {
+                                    normal : {
+                                        label : {
+                                            formatter : function (params){
+                                                return 'other\n' + params.value + '%\n'
+                                            },
+                                            textStyle: {
+                                                baseline : 'middle'
+                                            }
+                                        }
+                                    },
+                                } 
+                            }
+                        }
+                    },
+                    restore : {show: true},
+                    saveAsImage : {show: true}
+                }
+            },
+            series: ChartData.valuedata
+        };
+        var myChart = echarts.init(document.getElementById('main'));
+
+        function GetUnitTest() {
+            $.ajax({
+                type: "post",
+                url: "/Home/GetUnitTestOverview",
+                datatype: "json",
+                //data: ,
+                success: function (data) {
+
+                    ChartData.SetData(data);
+
+                    myChart.setOption(option);
+
+                    ChartData.SetDataDetail(data);
+                },
+                error: function () {
+                    return false;
+                }
+            });
+        }
+        GetUnitTest();
+        setInterval('GetUnitTest();', 14400000);
+    </script>
+}
